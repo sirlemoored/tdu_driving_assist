@@ -10,6 +10,8 @@ local _Proc = {}
 	_Proc.avgSpeedMph = 0
 
 	_Proc.standingStill = true
+	_Proc.osElapsedTime = 0
+	_Proc.lastOsElapsedTime = 0
 
 	function _Proc:reset()
 				
@@ -24,6 +26,9 @@ local _Proc = {}
 		self.avgSpeedMph = 0
 
 		self.standingStill = true
+		self.wasStandingStill = true
+		self.osElapsedTime = 0
+		self.lastOsElapsedTime = 0
 	
 	end
 
@@ -46,9 +51,17 @@ local _Proc = {}
 
 				self.previousDistance = self.currentDistance
 				self.currentDistance = data.currentDistance
-
 				self.standingStill = (self.previousDistance == self.currentDistance)
-				if self.standingStill and not ignoreStanding then return end
+
+				if self.standingStill and not ignoreStanding then 
+					self.lastOsElapsedTime = os.clock()
+					return 
+				else
+					self.osElapsedTime = 0
+					currentTime = os.clock()
+					self.osElapsedTime = currentTime - self.lastOsElapsedTime
+					self.lastOsElapsedTime = currentTime
+				end
 
 				self.totalDistanceKm = self.totalDistanceKm + (self.currentDistance - self.previousDistance)
 				self.totalDistanceMi = self.totalDistanceKm / 1.609344
@@ -58,7 +71,7 @@ local _Proc = {}
 				self.previousDistance = data.currentDistance
 				self.currentDistance = data.currentDistance
 			end
-			self.totalTime = self.totalTime + elapsed
+			self.totalTime = self.totalTime + self.osElapsedTime * 1000
 		end
 		
 	end
