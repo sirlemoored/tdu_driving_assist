@@ -14,7 +14,7 @@ Driving Assist is a microscopic window with just few buttons and no help whatsoe
   - **Timer** button        -- toggles recording time/distance.
   - **Reset timer**         -- self-explanatory.
   - **Logs folder**         -- opens folder selection dialog. This folder will be used as a storage for all your files with saved position. Location will be saved in your _Documents/Test Drive Unlimited/DA/settings.tdu_ file.
-  - **"___ ms"** combo box  -- sets position logging interval (every ___ms the program will append your current position to the position file).
+  - **"___ m"** combo box   -- sets position logging interval (every x travelled meters the program will append your current position to the position file).
   - **Auto** checkbox       -- if toggled ON, the timer and logger will stop automatically if your car is standing still.
 ### Key bindings
   - **Ctrl+E** -- toggles logger.

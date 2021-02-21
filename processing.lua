@@ -32,7 +32,7 @@ local _Proc = {}
 		if data == nil then return end
 
 		self.posX = math.floor(data.posX)
-		self.posY = data.posY
+		self.posY = math.floor(data.posY)
 		self.posZ = math.floor(data.posZ)
 
 		if isTiming then

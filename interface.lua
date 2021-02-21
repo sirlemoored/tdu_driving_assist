@@ -27,8 +27,6 @@ local _Intf = {}
 		speedKph = DrivingAssist.SpeedKph,
 		speedMph = DrivingAssist.SpeedMph,
 		fileSize = DrivingAssist.FileSize,
-		logging = DrivingAssist.Logging,
-		timing = DrivingAssist.Timing,
 
 		buttonDirectory = DrivingAssist.ButtonDirectory,
 		buttonReset = DrivingAssist.ButtonReset
@@ -41,6 +39,12 @@ local _Intf = {}
 	_Intf.periods[3] = 500
 	_Intf.periods[4] = 1000
 	
+	_Intf.frequencies = {}
+	_Intf.frequencies[0] = 5
+	_Intf.frequencies[1] = 10
+	_Intf.frequencies[2] = 20
+	_Intf.frequencies[3] = 50
+	_Intf.frequencies[4] = 100
 
 	function _Intf:update(dataPack, isLogging, isTiming, fileSize, logFolder)
 		if isLogging then
@@ -54,15 +58,13 @@ local _Intf = {}
 			DrivingAssist.ToggleTiming.State = cbUnchecked
 		end
 		DrivingAssist.FileSize.Caption = string.format("%.2f kB", fileSize / 1024)
-		DrivingAssist.Pos.Caption = string.format("[%.0f, %.2f, %.0f]", dataPack.posX, dataPack.posY, dataPack.posZ)
+		DrivingAssist.Pos.Caption = string.format("%.0f, %.0f, %.0f", dataPack.posX, dataPack.posY, dataPack.posZ)
 		DrivingAssist.DistanceKm.Caption = string.format("%0.2f km", dataPack.totalDistanceKm)
 		DrivingAssist.DistanceMi.Caption = string.format("%0.2f mi", dataPack.totalDistanceMi)
-		DrivingAssist.Time.Caption = TenthsSecondsToClock(dataPack.totalTime / 100)
+		DrivingAssist.Time.Caption = SecondsToClock(dataPack.totalTime / 1000)
 		DrivingAssist.SpeedKph.Caption = string.format("%0.2f kph", dataPack.avgSpeedKph)
 		DrivingAssist.SpeedMph.Caption = string.format("%0.2f mph", dataPack.avgSpeedMph)
 
-		if isLogging then DrivingAssist.Logging.Caption = "ON" else DrivingAssist.Logging.Caption = "OFF" end
-		if isTiming then DrivingAssist.Timing.Caption = "ON" else DrivingAssist.Timing.Caption = "OFF" end
 
 		DrivingAssist.LabelFileSize.Hint = logFolder
 		DrivingAssist.FileSize.Hint = logFolder
@@ -77,8 +79,8 @@ local _Intf = {}
 		DrivingAssist.Still.OnClick = function() int.ignoreStanding = not int.ignoreStanding; if int.ignoreStanding then DrivingAssist.Still.State = cbUnchecked else DrivingAssist.Still.State = cbChecked end end
 		DrivingAssist.OnClose = function() pipes.closeForm(int) end
 		DrivingAssist.Period.OnSelect = function() 
-			int.loggingFrequency = self.periods[DrivingAssist.Period.ItemIndex]; 
-			int:updateLogTimerInterval() 
+			int.distanceFrequency = self.frequencies[DrivingAssist.Period.ItemIndex]; 
+			--int:updateLogTimerInterval() 
 		end
 
 		self.timingHotkey = createHotkey(function() 

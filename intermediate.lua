@@ -16,6 +16,7 @@ local _Int = {}
 	_Int.istiming = false
 	_Int.ignoreStanding = false
 	_Int.loggingFrequency = 1000
+	_Int.distanceFrequency = 5
 
 	function _Int:addTimer(interval, label, onTick)
 		if onTick == nil then return end
@@ -33,40 +34,32 @@ local _Int = {}
 	end
 
 	-- Fetches raw memory contents from memory reading module.
-	-- return: table of memory contents { posX, posY, posZ, currentDistance }
 	function _Int:getMemory()
 		return self.memory:readMemoryContents()
 	end
 
 	-- Processes raw memory contents in processing module.
-	-- data: table of memory contents { posX, posY, posZ, currentDistance }
-	-- timeElapsed: time between ticks
-	-- isTiming: self.timing
-	-- ignoreStanding: whether we dismiss calculations if standing still
-	-- return: processed data { posX, posY, posZ, totalTime, avgSpeedKph, avgSpeedMph, totalDistanceKm, totalDistanceMi, standingStill }
 	function _Int:processMemory(data, timeElapsed, isTiming, ignoreStanding)
 		return self.processing:processData(data, timeElapsed, isTiming, ignoreStanding)
 	end
 
 	-- Saves driving data using logging module.
-	-- dataPack: table of driving data { posX, posY, posZ, standingStill }
-	-- isLogging: self.logging
-	-- ignoreY: is posY ignored in logging
-	-- ignoreStanding: dismiss logging if standing still
 	function _Int:log(data, isLogging, ignoreY, ignoreStanding)
 		self.logging:log(data, isLogging, ignoreY, ignoreStanding)
 		return self.logging:getFileSize()
 	end
+
+	function _Int:logBasedOnDistance(data, isLogging, ignoreY, ignoreStanding)
+		self.logging:logBasedOnDistance(data, isLogging, ignoreY, ignoreStanding)
+		return self.logging:getFileSize()
+	end
 	
 	-- Updates interface with processed data.
-	-- dataPack: table of driving data { posX, posY, posZ, totalTime, avgSpeedKph, avgSpeedMph, totalDistanceKm, totalDistanceMi }
-	-- isLogging: self.logging
-	-- isTiming: self.timing
-	-- fileSize: log file size
 	function _Int:updateInterface(dataPack, isLogging, isTiming, fileSize, folderName)
 		self.interface:update(dataPack, isLogging, isTiming, fileSize, folderName)
 	end
 
+	-- Updates settings with selected folder
 	function _Int:updateSettings()
 		local dialog = createSelectDirectoryDialog(self.interface.mainForm)
 		local success = dialog:Execute()
@@ -80,7 +73,13 @@ local _Int = {}
 		self.timers["log"].Enabled = false
 		self.timers["log"] = nil
 		self:addTimer(self.loggingFrequency, "log", function()
-		self:log({ posX = self.processing.posX, posY = self.processing.posY, posZ = self.processing.posZ, standingStill = self.processing.standingStill }, self.islogging, true, self.ignoreStanding)
+		self:log({ 
+			posX = self.processing.posX, 
+			posY = self.processing.posY, 
+			posZ = self.processing.posZ, 
+			standingStill = self.processing.standingStill }, 
+			self.islogging, 
+			true, self.ignoreStanding)
 		end)
 		self.timers["log"].Enabled = true
 		
@@ -118,15 +117,38 @@ local _Int = {}
 
 	-- This function should be outside, but is here not to overcomplicate things 
 	function _Int:addBasicTimers()
-		self:addTimer(100, "read", function()
+
+		readWriteFrequency = 10
+
+		-- Memory fetching timer
+		self:addTimer(readWriteFrequency, "read", function()
 			local mem = self:getMemory()
-			self:processMemory(mem, 100, self.istiming, self.ignoreStanding)
+			self:processMemory(mem, readWriteFrequency, self.istiming, self.ignoreStanding)
 		end)
 
+		-- Writing processed data to file timer
 		self:addTimer(self.loggingFrequency, "log", function()
-			self:log({ posX = self.processing.posX, posY = self.processing.posY, posZ = self.processing.posZ, standingStill = self.processing.standingStill }, self.islogging, true, self.ignoreStanding)
+			self:log({ posX = self.processing.posX, 
+					   posY = self.processing.posY, 
+					   posZ = self.processing.posZ, 
+					   standingStill = self.processing.standingStill }, 
+					   self.islogging, 
+					   true, 
+					   self.ignoreStanding)
 		end)
 
+		-- Distance-based logging timer
+		self:addTimer(readWriteFrequency, "distance", function()
+			self:logBasedOnDistance({ posX = self.processing.posX, 
+									posY = self.processing.posY,
+									posZ = self.processing.posZ,
+									standingStill = self.processing.standingStill,
+									distanceFrequency = self.distanceFrequency, 
+									distance = self.processing.currentDistance }, 
+			self.islogging, true, self.ignoreStanding)
+		end)
+
+		-- Interface timer
 		self:addTimer(100, "interface", function()
 			self:updateInterface(self.processing, self.islogging, self.istiming, self.logging:getFileSize(), self.settings.logs)
 		end)
@@ -148,7 +170,8 @@ local _Int = {}
 		self:inject()
 		self.settings:read()
 		self.timers["interface"].Enabled = true
-		self.timers["log"].Enabled = true
+		self.timers["log"].Enabled = false
+		self.timers["distance"].Enabled = true
 		self.timers["read"].Enabled = true
 	end
 

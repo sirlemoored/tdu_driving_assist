@@ -6,6 +6,7 @@ local _Log = {}
 	_Log.format = _defaultFormat
 	_Log.fileName = os.date(_Log.format)
 	_Log.file = nil
+	_Log.lastLoggedDistance = 0
 
 	function _Log:openFile(filename)
 		self.file = io.open(filename, "a")
@@ -25,6 +26,26 @@ local _Log = {}
 			else
 				self.file:write(string.format(_logLineWithYFormat, data.posX, data.posY, data.posZ))
 			end
+		end
+	end
+
+	function _Log:logBasedOnDistance(data, isLogging, ignoreY, ignoreStanding)
+		if not isLogging then return end
+		if data.standingStill == true and not ignoreStanding then return end
+		if self.file ~= nil then
+			travelled = data.distance - self.lastLoggedDistance
+			if travelled >= data.distanceFrequency / 1000.0 and travelled <= 0.015 then
+				if ignoreY then
+					self.file:write(string.format(_logLineWithoutYFormat, data.posX, data.posZ))
+				else
+					self.file:write(string.format(_logLineWithYFormat, data.posX, data.posY, data.posZ))
+				end
+			end
+
+			if travelled < 0 or travelled > data.distanceFrequency / 1000.0 then
+				self.lastLoggedDistance = data.distance
+			end
+
 		end
 	end
 
